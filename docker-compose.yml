@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # NGINX API Gateway
   nginx:
@@ -368,6 +366,47 @@ services:
         condition: service_healthy
     networks:
       - coupon-network
+
+  # Test Container
+  test-runner:
+    build:
+      context: .
+      dockerfile: tests/Dockerfile
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=coupon_user
+      - DB_PASSWORD=coupon_password
+      - DB_NAME=coupon_system
+      - REDIS_HOST_1=redis-node-1
+      - REDIS_PORT_1=7001
+      - REDIS_HOST_2=redis-node-2
+      - REDIS_PORT_2=7002
+      - REDIS_HOST_3=redis-node-3
+      - REDIS_PORT_3=7003
+      - KAFKA_HOST_1=kafka-1
+      - KAFKA_PORT_1=29092
+      - KAFKA_HOST_2=kafka-2
+      - KAFKA_PORT_2=29093
+      - KAFKA_HOST_3=kafka-3
+      - KAFKA_PORT_3=29094
+    depends_on:
+      mysql:
+        condition: service_started
+      redis-cluster-init:
+        condition: service_completed_successfully
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+      nginx:
+        condition: service_started
+    networks:
+      - coupon-network
+    profiles:
+      - testing
 
 volumes:
   mysql-data:
