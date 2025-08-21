@@ -4,7 +4,7 @@ Redis 클러스터 연결 및 캐시 연산
 """
 
 import redis
-from rediscluster import RedisCluster
+from redis.cluster import RedisCluster
 import json
 import os
 from typing import Optional, Dict, Any
@@ -31,7 +31,7 @@ class RedisClusterClient:
                 health_check_interval=30,
                 socket_timeout=5,
                 socket_connect_timeout=5,
-                max_connections_per_node=50
+                max_connections=50
             )
             logger.info("Redis Cluster connection established")
         except Exception as e:

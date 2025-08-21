@@ -30,7 +30,7 @@ app = FastAPI(
 )
 
 # Load Lua script for atomic operations
-LUA_SCRIPT_PATH = "redis_scripts/coupon_issue_cluster.lua"
+LUA_SCRIPT_PATH = "app/redis_scripts/coupon_issue_cluster.lua"
 try:
     with open(LUA_SCRIPT_PATH, 'r') as f:
         COUPON_ISSUE_SCRIPT = f.read()

@@ -3,11 +3,10 @@
 
 FROM nginx:1.25-alpine
 
-# Install additional modules for enhanced rate limiting
-# 향상된 속도 제한을 위한 추가 모듈 설치
+# Install additional packages for enhanced functionality
+# 향상된 기능을 위한 추가 패키지 설치
 RUN apk add --no-cache \
-    nginx-module-http-headers-more \
-    nginx-module-http-lua
+    curl
 
 # Copy NGINX configuration
 # NGINX 구성 파일 복사

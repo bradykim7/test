@@ -150,6 +150,11 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
     volumes:
       - kafka-1-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:29092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - coupon-network
 
@@ -170,6 +175,11 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
     volumes:
       - kafka-2-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:29093"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - coupon-network
 
@@ -190,6 +200,11 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
     volumes:
       - kafka-3-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:29094"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - coupon-network
 
@@ -315,8 +330,14 @@ services:
       - KAFKA_HOST_3=kafka-3
       - KAFKA_PORT_3=29094
     depends_on:
-      - mysql
-      - kafka-init
+      mysql:
+        condition: service_started
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
     networks:
       - coupon-network
 
@@ -337,8 +358,14 @@ services:
       - KAFKA_HOST_3=kafka-3
       - KAFKA_PORT_3=29094
     depends_on:
-      - mysql
-      - kafka-init
+      mysql:
+        condition: service_started
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
     networks:
       - coupon-network
 
