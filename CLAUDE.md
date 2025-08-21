@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Communication Guidelines
+
+- Respond in both English and Korean for all interactions
+- Keep CLAUDE.md in English and maintain CLAUDE_KO.md as the Korean version
+- When updating CLAUDE.md, automatically update CLAUDE_KO.md with the Korean translation
+
 ## Project Overview
 
 This repository implements a real-time synchronous coupon issuance system designed for large-scale concurrent environments. The system handles 1 million potential clients competing for 1,000 limited coupons with immediate Pass/Fail responses.
@@ -107,12 +113,6 @@ The system uses a hybrid synchronous/asynchronous architecture with the followin
 - **Containerization**: Docker with multi-stage builds
 - **Orchestration**: Docker Compose for local development, Kubernetes/ECS for production
 - **Python Libraries**: redis-py-cluster, asyncio, pydantic, sqlalchemy, pymysql, kafka-python
-
-## Communication Guidelines
-
-- Respond in both English and Korean for all interactions
-- Keep CLAUDE.md in English and maintain CLAUDE_KO.md as the Korean version
-- When updating CLAUDE.md, automatically update CLAUDE_KO.md with the Korean translation
 
 ## Current Implementation Status
 
