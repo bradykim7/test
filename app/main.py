@@ -12,7 +12,7 @@ from datetime import datetime
 import logging
 
 # Import our modules
-from cache.redis_cluster import redis_cluster_client, coupon_cache
+from cache.redis_cluster import get_redis_cluster_client, get_coupon_cache
 from messaging.kafka_client import get_kafka_producer
 from database.connection import get_db, create_tables
 from database.models import CouponEvent, UserCoupon
@@ -30,13 +30,13 @@ app = FastAPI(
 )
 
 # Load Lua script for atomic operations
-LUA_SCRIPT_PATH = "app/redis_scripts/coupon_issue_cluster.lua"
+LUA_SCRIPT_PATH = "redis_scripts/coupon_issue_cluster.lua"
 try:
     with open(LUA_SCRIPT_PATH, 'r') as f:
         COUPON_ISSUE_SCRIPT = f.read()
     
-    # Register script with Redis Cluster
-    coupon_issue_sha = redis_cluster_client.load_lua_script(COUPON_ISSUE_SCRIPT)
+    # Register script with Redis Cluster (will be done on first use)
+    coupon_issue_sha = None
     logger.info("Lua script loaded successfully")
 except Exception as e:
     logger.error(f"Failed to load Lua script: {e}")
@@ -67,8 +67,9 @@ async def startup_event():
         create_tables()
         logger.info("Database tables created/verified")
         
-        # Initialize sample event in cache
-        coupon_cache.initialize_stock("sample_event", 1000)
+        # Initialize sample event in cache using lazy initialization
+        cache = get_coupon_cache()
+        cache.initialize_stock("sample_event", 1000)
         logger.info("Sample event initialized in cache")
         
     except Exception as e:
@@ -91,23 +92,30 @@ async def issue_coupon(request: CouponRequest) -> CouponResponse:
     Issue coupon using Redis Cluster atomic operations and Kafka events
     Redis 클러스터 원자적 연산과 Kafka 이벤트를 사용한 쿠폰 발급
     """
-    if not coupon_issue_sha:
-        raise HTTPException(status_code=500, detail="Lua script not available")
+    global coupon_issue_sha
     
     try:
+        # Get instances using lazy initialization (efficient)
+        cache = get_coupon_cache()
+        redis_client = get_redis_cluster_client()
+        
+        # Load Lua script on first use
+        if not coupon_issue_sha:
+            coupon_issue_sha = redis_client.load_lua_script(COUPON_ISSUE_SCRIPT)
+        
         # Initialize stock in cache if not exists
-        if coupon_cache.get_stock(request.event_id) is None:
-            coupon_cache.initialize_stock(request.event_id, 1000)
+        if cache.get_stock(request.event_id) is None:
+            cache.initialize_stock(request.event_id, 1000)
         
         # Generate unique coupon ID
         coupon_id = str(uuid.uuid4())
         
         # Prepare Redis keys
-        stock_key = coupon_cache.get_stock_key(request.event_id)
-        participants_key = coupon_cache.get_participants_key(request.event_id)
+        stock_key = cache.get_stock_key(request.event_id)
+        participants_key = cache.get_participants_key(request.event_id)
         
         # Execute atomic Lua script on Redis Cluster
-        result = redis_cluster_client.execute_lua_script(
+        result = redis_client.execute_lua_script(
             coupon_issue_sha,
             [stock_key, participants_key],
             [request.user_id, coupon_id, 3600]  # 1 hour TTL
@@ -153,7 +161,7 @@ async def issue_coupon(request: CouponRequest) -> CouponResponse:
             return CouponResponse(
                 success=False,
                 message=error_messages.get(message, message),
-                remaining_stock=coupon_cache.get_stock(request.event_id)
+                remaining_stock=cache.get_stock(request.event_id)
             )
         
     except Exception as e:
@@ -164,10 +172,14 @@ async def issue_coupon(request: CouponRequest) -> CouponResponse:
 async def get_coupon_status(event_id: str) -> EventStatusResponse:
     """Get current coupon status for an event from cache"""
     try:
+        # Get instances using lazy initialization (efficient)
+        cache = get_coupon_cache()
+        redis_client = get_redis_cluster_client()
+        
         # Get data from cache (fast response)
-        current_stock = coupon_cache.get_stock(event_id)
-        participants_key = coupon_cache.get_participants_key(event_id)
-        participant_count = redis_cluster_client.cluster.scard(participants_key)
+        current_stock = cache.get_stock(event_id)
+        participants_key = cache.get_participants_key(event_id)
+        participant_count = redis_client.cluster.scard(participants_key)
         
         if current_stock is None:
             current_stock = 0
@@ -186,8 +198,11 @@ async def get_coupon_status(event_id: str) -> EventStatusResponse:
 async def get_user_coupon(user_id: str, event_id: str):
     """Get user's coupon for specific event"""
     try:
+        # Get instance using lazy initialization (efficient)
+        cache = get_coupon_cache()
+        
         # Check cache first
-        cached_coupon = coupon_cache.get_user_coupon(user_id, event_id)
+        cached_coupon = cache.get_user_coupon(user_id, event_id)
         if cached_coupon:
             return {
                 "user_id": user_id,
@@ -210,7 +225,10 @@ async def get_user_coupon(user_id: str, event_id: str):
 async def initialize_event_stock(event_id: str, initial_stock: int):
     """Admin endpoint to initialize event stock"""
     try:
-        success = coupon_cache.initialize_stock(event_id, initial_stock)
+        # Get instance using lazy initialization (efficient)
+        cache = get_coupon_cache()
+        
+        success = cache.initialize_stock(event_id, initial_stock)
         if success:
             return {
                 "event_id": event_id,
@@ -230,8 +248,11 @@ async def initialize_event_stock(event_id: str, initial_stock: int):
 async def get_cache_stats():
     """Admin endpoint for cache statistics"""
     try:
+        # Get Redis client using lazy initialization (efficient)
+        redis_client = get_redis_cluster_client()
+        
         # Get basic Redis Cluster info
-        cluster_info = redis_cluster_client.cluster.info()
+        cluster_info = redis_client.cluster.info()
         
         return {
             "timestamp": datetime.now().isoformat(),

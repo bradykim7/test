@@ -102,19 +102,7 @@ services:
       - redis-node-4
       - redis-node-5
       - redis-node-6
-    command: |
-      sh -c "
-      sleep 10
-      redis-cli --cluster create \
-        redis-node-1:7001 \
-        redis-node-2:7002 \
-        redis-node-3:7003 \
-        redis-node-4:7004 \
-        redis-node-5:7005 \
-        redis-node-6:7006 \
-        --cluster-replicas 1 \
-        --cluster-yes
-      "
+    command: ["sh", "-c", "sleep 10 && redis-cli --cluster create redis-node-1:7001 redis-node-2:7002 redis-node-3:7003 redis-node-4:7004 redis-node-5:7005 redis-node-6:7006 --cluster-replicas 1 --cluster-yes"]
     networks:
       - coupon-network
 

@@ -6,6 +6,12 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     curl \
     netcat-openbsd \
+    build-essential \
+    gcc \
+    g++ \
+    make \
+    libevent-dev \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements files
