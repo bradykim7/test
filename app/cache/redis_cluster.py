@@ -57,13 +57,13 @@ class CouponCache:
     
     # Stock management
     def get_stock_key(self, event_id: str) -> str:
-        return f"coupon:stock:{event_id}"
+        return f"coupon:stock:{{{event_id}}}"
     
     def get_participants_key(self, event_id: str) -> str:
-        return f"coupon:participants:{event_id}"
+        return f"coupon:participants:{{{event_id}}}"
     
     def get_user_coupon_key(self, user_id: str, event_id: str) -> str:
-        return f"coupon:user:{user_id}:{event_id}"
+        return f"coupon:user:{{{event_id}}}:{user_id}"
     
     def initialize_stock(self, event_id: str, stock: int) -> bool:
         """Initialize stock in cache"""
@@ -113,7 +113,7 @@ class CouponCache:
         """Invalidate all cache related to an event"""
         try:
             # Find user coupon keys using pattern matching
-            user_coupon_pattern = f"coupon:user:*:{event_id}"
+            user_coupon_pattern = f"coupon:user:{{{event_id}}}:*"
             user_keys = self.redis.keys(user_coupon_pattern)
             
             keys_to_delete = [

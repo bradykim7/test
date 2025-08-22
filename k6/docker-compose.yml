@@ -1,0 +1,44 @@
+services:
+  # 1. 시계열 데이터베이스 (k6 결과 저장소)
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_DB=k6 # k6라는 이름의 데이터베이스를 자동으로 생성
+    networks:
+      - k6-network
+
+  # 2. 시각화 대시보드
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000" # 브라우저에서 Grafana에 접속할 포트
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    networks:
+      - k6-network
+
+  # 3. k6 부하 테스트 실행기
+  k6:
+    image: grafana/k6
+    container_name: k6
+    ports:
+      - "6565:6565"
+    volumes:
+      - ./scripts:/scripts # 로컬의 scripts 폴더를 컨테이너에 연결
+    environment:
+      # k6의 출력(OUT)을 InfluxDB로 보냄
+      - K6_OUT=influxdb=http://influxdb:8086/k6
+    networks:
+      - k6-network
+    # docker-compose up을 해도 바로 실행되지 않고 대기하도록 설정
+    # 이렇게 해야 원하는 시점에 테스트를 실행할 수 있음
+    entrypoint: ["sleep", "infinity"]
+
+# 서비스들이 서로 통신할 수 있는 Docker 네트워크 정의
+networks:
+  k6-network:

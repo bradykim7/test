@@ -113,11 +113,12 @@ async def issue_coupon(request: CouponRequest) -> CouponResponse:
         # Prepare Redis keys
         stock_key = cache.get_stock_key(request.event_id)
         participants_key = cache.get_participants_key(request.event_id)
+        user_coupon_key = cache.get_user_coupon_key(request.user_id, request.event_id)
         
         # Execute atomic Lua script on Redis Cluster
         result = redis_client.execute_lua_script(
             coupon_issue_sha,
-            [stock_key, participants_key],
+            [stock_key, participants_key, user_coupon_key],
             [request.user_id, coupon_id, 3600]  # 1 hour TTL
         )
         
